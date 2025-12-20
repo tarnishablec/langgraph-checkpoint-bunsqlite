@@ -636,14 +636,3 @@ export class BunSqliteSaver extends BaseCheckpointSaver {
   }
 }
 
-// Export all types from the checkpoint library for convenience
-export type {
-  Checkpoint,
-  CheckpointTuple,
-  CheckpointListOptions,
-  CheckpointMetadata,
-  CheckpointPendingWrite,
-  PendingWrite,
-} from "@langchain/langgraph-checkpoint";
-
-export { SerializerProtocol } from "@langchain/langgraph-checkpoint";
