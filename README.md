@@ -429,7 +429,7 @@ Contributions are welcome! Please ensure:
 
 ## License
 
-MIT
+MPL-2.0
 
 ## Related Projects
 
