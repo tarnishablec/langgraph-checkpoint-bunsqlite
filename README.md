@@ -2,8 +2,8 @@
 
 > A LangGraph checkpoint saver implementation using Bun's native SQLite
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue.svg)](https://www.typescriptlang.org/)
-[![Bun](https://img.shields.io/badge/Bun-1.0+-black.svg)](https://bun.sh/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-blue.svg)](https://www.typescriptlang.org/)
+[![Bun](https://img.shields.io/badge/Bun-1.35-black.svg)](https://bun.sh/)
 
 ## ⚠️ Important: Bun Only
 
@@ -26,7 +26,7 @@ It uses Bun's native `bun:sqlite` module which is not available in other runtime
 **Prerequisites:** You must have [Bun](https://bun.sh/) installed. This package does not work with Node.js.
 
 ```bash
-bun add langgraph-checkpoint-bunsqlite @langchain/langgraph-checkpoint
+bun add https://github.com/tarnishablec/langgraph-checkpoint-bunsqlite.git
 ```
 
 > **⚠️ Runtime Requirement:** This package ONLY works with Bun runtime. It uses `bun:sqlite` which is not available in Node.js, Deno, or other JavaScript runtimes. Attempting to use it with other runtimes will result in module resolution errors.
@@ -279,15 +279,15 @@ The implementation uses two tables:
 
 Stores checkpoint data.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| thread_id | TEXT | Thread identifier |
-| checkpoint_ns | TEXT | Checkpoint namespace (default: "") |
-| checkpoint_id | TEXT | Checkpoint identifier |
-| parent_checkpoint_id | TEXT | Parent checkpoint ID (nullable) |
-| type | TEXT | Serialization type |
-| checkpoint | BLOB | Serialized checkpoint data |
-| metadata | BLOB | Serialized metadata |
+| Column               | Type | Description                        |
+| -------------------- | ---- | ---------------------------------- |
+| thread_id            | TEXT | Thread identifier                  |
+| checkpoint_ns        | TEXT | Checkpoint namespace (default: "") |
+| checkpoint_id        | TEXT | Checkpoint identifier              |
+| parent_checkpoint_id | TEXT | Parent checkpoint ID (nullable)    |
+| type                 | TEXT | Serialization type                 |
+| checkpoint           | BLOB | Serialized checkpoint data         |
+| metadata             | BLOB | Serialized metadata                |
 
 **Primary Key:** (thread_id, checkpoint_ns, checkpoint_id)
 
@@ -295,16 +295,16 @@ Stores checkpoint data.
 
 Stores pending writes associated with checkpoints.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| thread_id | TEXT | Thread identifier |
-| checkpoint_ns | TEXT | Checkpoint namespace |
-| checkpoint_id | TEXT | Checkpoint identifier |
-| task_id | TEXT | Task identifier |
-| idx | INTEGER | Write index |
-| channel | TEXT | Channel name |
-| type | TEXT | Serialization type |
-| value | BLOB | Serialized value |
+| Column        | Type    | Description           |
+| ------------- | ------- | --------------------- |
+| thread_id     | TEXT    | Thread identifier     |
+| checkpoint_ns | TEXT    | Checkpoint namespace  |
+| checkpoint_id | TEXT    | Checkpoint identifier |
+| task_id       | TEXT    | Task identifier       |
+| idx           | INTEGER | Write index           |
+| channel       | TEXT    | Channel name          |
+| type          | TEXT    | Serialization type    |
+| value         | BLOB    | Serialized value      |
 
 **Primary Key:** (thread_id, checkpoint_ns, checkpoint_id, task_id, idx)
 
