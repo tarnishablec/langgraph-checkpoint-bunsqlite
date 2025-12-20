@@ -3,8 +3,12 @@
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "lib": ["ESNext"],
-    "types": ["bun-types"],
+    "lib": [
+      "ESNext"
+    ],
+    "types": [
+      "bun"
+    ],
     "strict": true,
     "alwaysStrict": true,
     "noImplicitAny": true,
@@ -24,6 +28,11 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["index.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "index.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "bun.lock"
+  ]
 }

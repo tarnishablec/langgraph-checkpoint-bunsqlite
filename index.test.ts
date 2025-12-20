@@ -7,7 +7,7 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { Database } from "bun:sqlite";
 import { BunSqliteSaver } from "./index";
-import type { Checkpoint, CheckpointMetadata } from "./index";
+import type { Checkpoint, CheckpointMetadata, PendingWrite } from "@langchain/langgraph-checkpoint";
 
 describe("BunSqliteSaver", () => {
   let saver: BunSqliteSaver;
@@ -50,29 +50,29 @@ describe("BunSqliteSaver", () => {
       const db = new Database(":memory:");
       const fromDbSaver = BunSqliteSaver.fromDatabase(db);
       expect(fromDbSaver).toBeDefined();
-      
+
       // Should not close the database when close() is called
       fromDbSaver.close();
-      
+
       // Database should still be usable
       expect(() => db.query("SELECT 1").get()).not.toThrow();
-      
+
       db.close();
     });
 
     test("should set up tables on existing database", () => {
       const db = new Database(":memory:");
       BunSqliteSaver.fromDatabase(db);
-      
+
       // Check that tables exist
       const tables = db.query<{ name: string }, []>(
         "SELECT name FROM sqlite_master WHERE type='table'"
       ).all();
-      
+
       const tableNames = tables.map(t => t.name);
       expect(tableNames).toContain("checkpoints");
       expect(tableNames).toContain("checkpoint_writes");
-      
+
       db.close();
     });
   });
@@ -86,13 +86,11 @@ describe("BunSqliteSaver", () => {
         channel_values: { test: "value" },
         channel_versions: { test: 1 },
         versions_seen: {},
-        pending_sends: [],
       };
 
       const metadata: CheckpointMetadata = {
         source: "input",
         step: 0,
-        writes: null,
         parents: {},
       };
 
@@ -103,7 +101,7 @@ describe("BunSqliteSaver", () => {
       };
 
       const savedConfig = await saver.put(config, checkpoint, metadata);
-      
+
       expect(savedConfig.configurable?.thread_id).toBe("thread-1");
       expect(savedConfig.configurable?.checkpoint_id).toBe("checkpoint-1");
     });
@@ -116,13 +114,11 @@ describe("BunSqliteSaver", () => {
         channel_values: {},
         channel_versions: {},
         versions_seen: {},
-        pending_sends: [],
       };
 
       const metadata: CheckpointMetadata = {
         source: "loop",
         step: 1,
-        writes: { node1: "data" },
         parents: {},
       };
 
@@ -145,13 +141,11 @@ describe("BunSqliteSaver", () => {
         channel_values: {},
         channel_versions: {},
         versions_seen: {},
-        pending_sends: [],
       };
 
       const metadata: CheckpointMetadata = {
         source: "input",
         step: 0,
-        writes: null,
         parents: {},
       };
 
@@ -172,13 +166,11 @@ describe("BunSqliteSaver", () => {
         channel_values: {},
         channel_versions: {},
         versions_seen: {},
-        pending_sends: [],
       };
 
       const metadata: CheckpointMetadata = {
         source: "input",
         step: 0,
-        writes: null,
         parents: {},
       };
 
@@ -203,13 +195,11 @@ describe("BunSqliteSaver", () => {
         channel_values: { test: "value" },
         channel_versions: { test: 1 },
         versions_seen: {},
-        pending_sends: [],
       };
 
       const metadata: CheckpointMetadata = {
         source: "input",
         step: 0,
-        writes: null,
         parents: {},
       };
 
@@ -242,7 +232,6 @@ describe("BunSqliteSaver", () => {
         channel_values: {},
         channel_versions: {},
         versions_seen: {},
-        pending_sends: [],
       };
 
       const checkpoint2: Checkpoint = {
@@ -252,13 +241,11 @@ describe("BunSqliteSaver", () => {
         channel_values: {},
         channel_versions: {},
         versions_seen: {},
-        pending_sends: [],
       };
 
       const metadata: CheckpointMetadata = {
         source: "input",
         step: 0,
-        writes: null,
         parents: {},
       };
 
@@ -304,7 +291,6 @@ describe("BunSqliteSaver", () => {
         channel_values: {},
         channel_versions: {},
         versions_seen: {},
-        pending_sends: [],
       };
 
       const checkpoint2: Checkpoint = {
@@ -314,13 +300,11 @@ describe("BunSqliteSaver", () => {
         channel_values: {},
         channel_versions: {},
         versions_seen: {},
-        pending_sends: [],
       };
 
       const metadata: CheckpointMetadata = {
         source: "input",
         step: 0,
-        writes: null,
         parents: {},
       };
 
@@ -362,13 +346,11 @@ describe("BunSqliteSaver", () => {
         channel_values: {},
         channel_versions: {},
         versions_seen: {},
-        pending_sends: [],
       };
 
       const metadata: CheckpointMetadata = {
         source: "input",
         step: 0,
-        writes: null,
         parents: {},
       };
 
@@ -380,7 +362,7 @@ describe("BunSqliteSaver", () => {
 
       const savedConfig = await saver.put(config, checkpoint, metadata);
 
-      const writes = [
+      const writes: PendingWrite[] = [
         ["channel1", { data: "value1" }],
         ["channel2", { data: "value2" }],
       ];
@@ -393,17 +375,17 @@ describe("BunSqliteSaver", () => {
     });
 
     test("should throw error if thread_id is missing", async () => {
-      const writes = [["channel1", { data: "value1" }]];
+      const writes: PendingWrite[] = [["channel1", { data: "value1" }]];
 
-      await expect(
+      expect(
         saver.putWrites({ configurable: {} }, writes, "task-1")
       ).rejects.toThrow("thread_id is required");
     });
 
     test("should throw error if checkpoint_id is missing", async () => {
-      const writes = [["channel1", { data: "value1" }]];
+      const writes: PendingWrite[] = [["channel1", { data: "value1" }]];
 
-      await expect(
+      expect(
         saver.putWrites(
           { configurable: { thread_id: "thread-1" } },
           writes,
@@ -420,13 +402,11 @@ describe("BunSqliteSaver", () => {
         channel_values: {},
         channel_versions: {},
         versions_seen: {},
-        pending_sends: [],
       };
 
       const metadata: CheckpointMetadata = {
         source: "input",
         step: 0,
-        writes: null,
         parents: {},
       };
 
@@ -438,7 +418,7 @@ describe("BunSqliteSaver", () => {
 
       const savedConfig = await saver.put(config, checkpoint, metadata);
 
-      const writes = [
+      const writes: PendingWrite[] = [
         ["channel1", { index: 0 }],
         ["channel2", { index: 1 }],
         ["channel3", { index: 2 }],
@@ -458,7 +438,6 @@ describe("BunSqliteSaver", () => {
       const metadata: CheckpointMetadata = {
         source: "input",
         step: 0,
-        writes: null,
         parents: {},
       };
 
@@ -477,7 +456,6 @@ describe("BunSqliteSaver", () => {
           channel_values: {},
           channel_versions: {},
           versions_seen: {},
-          pending_sends: [],
         };
         await saver.put(config, checkpoint, metadata);
       }
@@ -494,7 +472,6 @@ describe("BunSqliteSaver", () => {
       const metadata: CheckpointMetadata = {
         source: "input",
         step: 0,
-        writes: null,
         parents: {},
       };
 
@@ -512,7 +489,6 @@ describe("BunSqliteSaver", () => {
         channel_values: {},
         channel_versions: {},
         versions_seen: {},
-        pending_sends: [],
       }, metadata);
 
       await saver.put(config, {
@@ -522,7 +498,6 @@ describe("BunSqliteSaver", () => {
         channel_values: {},
         channel_versions: {},
         versions_seen: {},
-        pending_sends: [],
       }, metadata);
 
       await saver.put(config, {
@@ -532,7 +507,6 @@ describe("BunSqliteSaver", () => {
         channel_values: {},
         channel_versions: {},
         versions_seen: {},
-        pending_sends: [],
       }, metadata);
 
       const checkpoints = [];
@@ -549,7 +523,6 @@ describe("BunSqliteSaver", () => {
       const metadata: CheckpointMetadata = {
         source: "input",
         step: 0,
-        writes: null,
         parents: {},
       };
 
@@ -567,7 +540,6 @@ describe("BunSqliteSaver", () => {
           channel_values: {},
           channel_versions: {},
           versions_seen: {},
-          pending_sends: [],
         };
         await saver.put(config, checkpoint, metadata);
       }
@@ -584,7 +556,6 @@ describe("BunSqliteSaver", () => {
       const metadata: CheckpointMetadata = {
         source: "input",
         step: 0,
-        writes: null,
         parents: {},
       };
 
@@ -602,7 +573,6 @@ describe("BunSqliteSaver", () => {
           channel_values: {},
           channel_versions: {},
           versions_seen: {},
-          pending_sends: [],
         };
         await saver.put(config, checkpoint, metadata);
       }
@@ -632,11 +602,9 @@ describe("BunSqliteSaver", () => {
         channel_values: {},
         channel_versions: {},
         versions_seen: {},
-        pending_sends: [],
       }, {
         source: "input",
         step: 0,
-        writes: null,
         parents: {},
       });
 
@@ -647,11 +615,9 @@ describe("BunSqliteSaver", () => {
         channel_values: {},
         channel_versions: {},
         versions_seen: {},
-        pending_sends: [],
       }, {
         source: "loop",
         step: 1,
-        writes: null,
         parents: {},
       });
 
@@ -692,7 +658,6 @@ describe("BunSqliteSaver", () => {
       const metadata: CheckpointMetadata = {
         source: "input",
         step: 0,
-        writes: null,
         parents: {},
       };
 
@@ -711,7 +676,6 @@ describe("BunSqliteSaver", () => {
           channel_values: {},
           channel_versions: {},
           versions_seen: {},
-          pending_sends: [],
         };
         await saver.put(config, checkpoint, metadata);
       }
@@ -734,13 +698,11 @@ describe("BunSqliteSaver", () => {
         channel_values: {},
         channel_versions: {},
         versions_seen: {},
-        pending_sends: [],
       };
 
       const metadata: CheckpointMetadata = {
         source: "input",
         step: 0,
-        writes: null,
         parents: {},
       };
 
@@ -769,13 +731,11 @@ describe("BunSqliteSaver", () => {
         channel_values: {},
         channel_versions: {},
         versions_seen: {},
-        pending_sends: [],
       };
 
       const metadata: CheckpointMetadata = {
         source: "input",
         step: 0,
-        writes: null,
         parents: {},
       };
 
@@ -812,13 +772,11 @@ describe("BunSqliteSaver", () => {
         channel_values: {},
         channel_versions: {},
         versions_seen: {},
-        pending_sends: [],
       };
 
       const metadata: CheckpointMetadata = {
         source: "input",
         step: 0,
-        writes: null,
         parents: {},
       };
 
@@ -845,13 +803,11 @@ describe("BunSqliteSaver", () => {
         channel_values: {},
         channel_versions: {},
         versions_seen: {},
-        pending_sends: [],
       };
 
       const metadata: CheckpointMetadata = {
         source: "input",
         step: 0,
-        writes: null,
         parents: {},
       };
 
@@ -881,7 +837,6 @@ describe("BunSqliteSaver", () => {
       const metadata: CheckpointMetadata = {
         source: "input",
         step: 0,
-        writes: null,
         parents: {},
       };
 
@@ -893,7 +848,6 @@ describe("BunSqliteSaver", () => {
           channel_values: {},
           channel_versions: {},
           versions_seen: {},
-          pending_sends: [],
         };
         await saver.put(
           { configurable: { thread_id: "thread-1" } },
@@ -910,7 +864,6 @@ describe("BunSqliteSaver", () => {
       const metadata: CheckpointMetadata = {
         source: "input",
         step: 0,
-        writes: null,
         parents: {},
       };
 
@@ -921,7 +874,6 @@ describe("BunSqliteSaver", () => {
         channel_values: {},
         channel_versions: {},
         versions_seen: {},
-        pending_sends: [],
       };
 
       await saver.put(
@@ -947,13 +899,11 @@ describe("BunSqliteSaver", () => {
         channel_values: {},
         channel_versions: {},
         versions_seen: {},
-        pending_sends: [],
       };
 
       const metadata: CheckpointMetadata = {
         source: "input",
         step: 0,
-        writes: null,
         parents: {},
       };
 
@@ -983,12 +933,12 @@ describe("BunSqliteSaver", () => {
     test("should not close externally owned database", () => {
       const db = new Database(":memory:");
       const fromDbSaver = BunSqliteSaver.fromDatabase(db);
-      
+
       fromDbSaver.close();
-      
+
       // Database should still be usable
       expect(() => db.query("SELECT 1").get()).not.toThrow();
-      
+
       db.close();
     });
   });
@@ -998,7 +948,6 @@ describe("BunSqliteSaver", () => {
       const metadata: CheckpointMetadata = {
         source: "input",
         step: 0,
-        writes: null,
         parents: {},
       };
 
@@ -1009,7 +958,6 @@ describe("BunSqliteSaver", () => {
         channel_values: { thread: 1 },
         channel_versions: {},
         versions_seen: {},
-        pending_sends: [],
       };
 
       const checkpoint2: Checkpoint = {
@@ -1019,7 +967,6 @@ describe("BunSqliteSaver", () => {
         channel_values: { thread: 2 },
         channel_versions: {},
         versions_seen: {},
-        pending_sends: [],
       };
 
       await saver.put(
@@ -1044,38 +991,6 @@ describe("BunSqliteSaver", () => {
       expect(tuple2?.checkpoint.channel_values.thread).toBe(2);
     });
 
-    test("should handle checkpoint with pending_sends", async () => {
-      const checkpoint: Checkpoint = {
-        v: 1,
-        id: "checkpoint-1",
-        ts: new Date().toISOString(),
-        channel_values: {},
-        channel_versions: {},
-        versions_seen: {},
-        pending_sends: [
-          { node: "node1", args: ["arg1"] },
-        ],
-      };
-
-      const metadata: CheckpointMetadata = {
-        source: "input",
-        step: 0,
-        writes: null,
-        parents: {},
-      };
-
-      const config = {
-        configurable: {
-          thread_id: "thread-1",
-        },
-      };
-
-      await saver.put(config, checkpoint, metadata);
-
-      const tuple = await saver.getTuple(config);
-      expect(tuple?.checkpoint.pending_sends.length).toBe(1);
-    });
-
     test("should handle complex channel values", async () => {
       const checkpoint: Checkpoint = {
         v: 1,
@@ -1088,13 +1003,11 @@ describe("BunSqliteSaver", () => {
         },
         channel_versions: {},
         versions_seen: {},
-        pending_sends: [],
       };
 
       const metadata: CheckpointMetadata = {
         source: "input",
         step: 0,
-        writes: null,
         parents: {},
       };
 
@@ -1119,13 +1032,11 @@ describe("BunSqliteSaver", () => {
         channel_values: {},
         channel_versions: {},
         versions_seen: {},
-        pending_sends: [],
       };
 
       const metadata: CheckpointMetadata = {
         source: "input",
         step: 0,
-        writes: null,
         parents: {},
       };
 
