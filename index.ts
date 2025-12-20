@@ -138,6 +138,31 @@ export class BunSqliteSaver extends BaseCheckpointSaver {
   }
 
   /**
+   * Create a BunSqliteSaver from a connection string
+   * 
+   * This method provides API compatibility with @langchain/langgraph-checkpoint-sqlite.
+   * The connection string is simply the path to the SQLite database file.
+   * 
+   * @param connString - Path to the SQLite database file (use ":memory:" for in-memory database)
+   * @param serde - Optional custom serializer
+   * @returns New BunSqliteSaver instance
+   * 
+   * @example
+   * ```typescript
+   * import { BunSqliteSaver } from "langgraph-checkpoint-bunsqlite";
+   * 
+   * // Create an in-memory saver
+   * const saver = BunSqliteSaver.fromConnString(":memory:");
+   * 
+   * // Create a file-based saver
+   * const fileSaver = BunSqliteSaver.fromConnString("./checkpoints.db");
+   * ```
+   */
+  static fromConnString(connString: string, serde?: SerializerProtocol): BunSqliteSaver {
+    return new BunSqliteSaver({ dbPath: connString, serializer: serde });
+  }
+
+  /**
    * Create a BunSqliteSaver from an existing Database instance
    * 
    * This allows you to reuse an existing SQLite database connection.
@@ -220,6 +245,30 @@ export class BunSqliteSaver extends BaseCheckpointSaver {
       CREATE INDEX IF NOT EXISTS idx_checkpoint_writes 
       ON checkpoint_writes(thread_id, checkpoint_ns, checkpoint_id)
     `);
+  }
+
+  /**
+   * Get just the checkpoint (not the full tuple) by its configuration
+   * 
+   * This method provides a simpler API for users who just need the checkpoint data
+   * without metadata, parent config, or pending writes.
+   * 
+   * @param config - Runnable configuration containing thread_id and checkpoint_id
+   * @returns The checkpoint or undefined if not found
+   * 
+   * @example
+   * ```typescript
+   * const checkpoint = await saver.get({
+   *   configurable: {
+   *     thread_id: "thread-1",
+   *     checkpoint_id: "checkpoint-123"
+   *   }
+   * });
+   * ```
+   */
+  async get(config: RunnableConfig): Promise<Checkpoint | undefined> {
+    const tuple = await this.getTuple(config);
+    return tuple?.checkpoint;
   }
 
   /**
