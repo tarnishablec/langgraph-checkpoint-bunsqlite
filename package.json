@@ -1,0 +1,38 @@
+{
+  "name": "langgraph-checkpoint-bunsqlite",
+  "version": "0.1.0",
+  "description": "BunSqliteSaver - LangGraph checkpoint persistence using Bun's native bun:sqlite",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "default": "./index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "test:coverage": "bun test --coverage"
+  },
+  "keywords": [
+    "langgraph",
+    "checkpoint",
+    "sqlite",
+    "bun",
+    "persistence"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "dependencies": {
+    "@langchain/langgraph-checkpoint": "^1.0.0"
+  },
+  "devDependencies": {
+    "bun-types": "^1.3.5",
+    "typescript": "^5.9.3"
+  }
+}
