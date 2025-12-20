@@ -20,6 +20,7 @@ It uses Bun's native `bun:sqlite` module which is not available in other runtime
 - 🔒 **Type Safety** - Full TypeScript support with strict type checking
 - 🧹 **Clean API** - Simple, intuitive interface matching LangGraph standards
 - 📦 **Zero Config** - Works out of the box with sensible defaults
+- 🔄 **API Compatible** - Aligned with `@langchain/langgraph-checkpoint-sqlite` for easy migration
 
 ## Installation
 
@@ -41,10 +42,16 @@ import { BunSqliteSaver } from "langgraph-checkpoint-bunsqlite";
 // Create an in-memory checkpoint saver (great for development/testing)
 const saver = new BunSqliteSaver();
 
+// Or use the fromConnString factory method (API compatible with @langchain/langgraph-checkpoint-sqlite)
+const saverFromConn = BunSqliteSaver.fromConnString(":memory:");
+
 // Or use a file-based database for persistence
 const persistentSaver = new BunSqliteSaver({ 
   dbPath: "./my-checkpoints.db" 
 });
+
+// Or with fromConnString
+const persistentSaverFromConn = BunSqliteSaver.fromConnString("./my-checkpoints.db");
 ```
 
 ### Using with LangGraph
@@ -109,6 +116,10 @@ checkpointer.close();
 
 ## Configuration
 
+### API Compatibility
+
+This package provides API compatibility with `@langchain/langgraph-checkpoint-sqlite` through the `fromConnString` factory method and `get()` method, making it easy to switch between implementations.
+
 ### BunSqliteSaverConfig
 
 ```typescript
@@ -128,6 +139,23 @@ interface BunSqliteSaverConfig {
 ```
 
 ### Examples
+
+#### Using fromConnString (API Compatible)
+
+```typescript
+// In-memory database
+const saver = BunSqliteSaver.fromConnString(":memory:");
+
+// File-based database
+const fileSaver = BunSqliteSaver.fromConnString("./checkpoints.db");
+
+// With custom serializer
+import { JsonPlusSerializer } from "@langchain/langgraph-checkpoint";
+const customSaver = BunSqliteSaver.fromConnString(
+  "./checkpoints.db",
+  new JsonPlusSerializer()
+);
+```
 
 #### In-Memory Database (Default)
 
@@ -185,11 +213,45 @@ new BunSqliteSaver(config?: BunSqliteSaverConfig)
 
 #### Static Methods
 
+##### `fromConnString(connString: string, serde?: SerializerProtocol): BunSqliteSaver`
+
+Create a saver from a connection string. This method provides API compatibility with `@langchain/langgraph-checkpoint-sqlite`.
+
+**Parameters:**
+- `connString`: Path to the SQLite database file (use `:memory:` for in-memory database)
+- `serde`: Optional custom serializer
+
+```typescript
+// Create an in-memory saver
+const saver = BunSqliteSaver.fromConnString(":memory:");
+
+// Create a file-based saver
+const fileSaver = BunSqliteSaver.fromConnString("./checkpoints.db");
+```
+
 ##### `fromDatabase(db: Database, serde?: SerializerProtocol): BunSqliteSaver`
 
 Create a saver from an existing Database instance. The database will not be closed when `close()` is called.
 
 #### Instance Methods
+
+##### `get(config: RunnableConfig): Promise<Checkpoint | undefined>`
+
+Get just the checkpoint without the full tuple. This provides a simpler API for users who just need the checkpoint data.
+
+```typescript
+const checkpoint = await saver.get({
+  configurable: {
+    thread_id: "thread-1",
+    checkpoint_id: "checkpoint-123"
+  }
+});
+
+// Or get the latest checkpoint
+const latestCheckpoint = await saver.get({
+  configurable: { thread_id: "thread-1" }
+});
+```
 
 ##### `getTuple(config: RunnableConfig): Promise<CheckpointTuple | undefined>`
 
@@ -343,6 +405,22 @@ bun run typecheck
 ```
 
 ## Best Practices
+
+### API Patterns
+
+This package provides multiple API patterns that are interchangeable:
+
+```typescript
+// Pattern 1: Using fromConnString and get() (compatible with @langchain/langgraph-checkpoint-sqlite)
+const saver = BunSqliteSaver.fromConnString(":memory:");
+const checkpoint = await saver.get(config);
+
+// Pattern 2: Using constructor and getTuple() (full tuple with metadata)
+const saver = new BunSqliteSaver({ dbPath: ":memory:" });
+const tuple = await saver.getTuple(config);
+
+// Both patterns are valid and can be used based on your preference
+```
 
 ### 1. Always Close Connections
 

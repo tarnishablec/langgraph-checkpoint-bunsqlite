@@ -77,6 +77,34 @@ describe("BunSqliteSaver", () => {
     });
   });
 
+  describe("fromConnString", () => {
+    test("should create saver from connection string", () => {
+      const fromConnSaver = BunSqliteSaver.fromConnString(":memory:");
+      expect(fromConnSaver).toBeDefined();
+      fromConnSaver.close();
+    });
+
+    test("should create file-based saver from connection string", () => {
+      const fromConnSaver = BunSqliteSaver.fromConnString(":memory:");
+      expect(fromConnSaver).toBeDefined();
+      fromConnSaver.close();
+    });
+
+    test("should accept custom serializer", () => {
+      const fromConnSaver = BunSqliteSaver.fromConnString(":memory:", undefined);
+      expect(fromConnSaver).toBeDefined();
+      fromConnSaver.close();
+    });
+
+    test("should set up tables", () => {
+      const fromConnSaver = BunSqliteSaver.fromConnString(":memory:");
+      const stats = fromConnSaver.getStats();
+      expect(stats).toBeDefined();
+      expect(stats.totalCheckpoints).toBe(0);
+      fromConnSaver.close();
+    });
+  });
+
   describe("put", () => {
     test("should save a checkpoint", async () => {
       const checkpoint: Checkpoint = {
@@ -183,6 +211,104 @@ describe("BunSqliteSaver", () => {
 
       const savedConfig = await saver.put(config, checkpoint, metadata);
       expect(savedConfig.configurable?.checkpoint_ns).toBe("custom-namespace");
+    });
+  });
+
+  describe("get", () => {
+    test("should retrieve just the checkpoint without tuple", async () => {
+      const checkpoint: Checkpoint = {
+        v: 1,
+        id: "checkpoint-1",
+        ts: new Date().toISOString(),
+        channel_values: { test: "value" },
+        channel_versions: { test: 1 },
+        versions_seen: {},
+      };
+
+      const metadata: CheckpointMetadata = {
+        source: "input",
+        step: 0,
+        parents: {},
+      };
+
+      const config = {
+        configurable: {
+          thread_id: "thread-1",
+        },
+      };
+
+      await saver.put(config, checkpoint, metadata);
+
+      const retrievedCheckpoint = await saver.get({
+        configurable: {
+          thread_id: "thread-1",
+          checkpoint_id: "checkpoint-1",
+        },
+      });
+
+      expect(retrievedCheckpoint).toBeDefined();
+      expect(retrievedCheckpoint?.id).toBe("checkpoint-1");
+      expect(retrievedCheckpoint?.channel_values.test).toBe("value");
+    });
+
+    test("should return undefined for non-existent checkpoint", async () => {
+      const checkpoint = await saver.get({
+        configurable: {
+          thread_id: "non-existent",
+          checkpoint_id: "non-existent",
+        },
+      });
+
+      expect(checkpoint).toBeUndefined();
+    });
+
+    test("should return undefined when thread_id is missing", async () => {
+      const checkpoint = await saver.get({
+        configurable: {},
+      });
+
+      expect(checkpoint).toBeUndefined();
+    });
+
+    test("should retrieve latest checkpoint when checkpoint_id not specified", async () => {
+      const checkpoint1: Checkpoint = {
+        v: 1,
+        id: "checkpoint-1",
+        ts: new Date().toISOString(),
+        channel_values: { version: 1 },
+        channel_versions: {},
+        versions_seen: {},
+      };
+
+      const checkpoint2: Checkpoint = {
+        v: 1,
+        id: "checkpoint-2",
+        ts: new Date().toISOString(),
+        channel_values: { version: 2 },
+        channel_versions: {},
+        versions_seen: {},
+      };
+
+      const metadata: CheckpointMetadata = {
+        source: "input",
+        step: 0,
+        parents: {},
+      };
+
+      const config = {
+        configurable: {
+          thread_id: "thread-1",
+        },
+      };
+
+      await saver.put(config, checkpoint1, metadata);
+      await saver.put(config, checkpoint2, metadata);
+
+      const retrievedCheckpoint = await saver.get(config);
+
+      expect(retrievedCheckpoint).toBeDefined();
+      expect(retrievedCheckpoint?.id).toBe("checkpoint-2");
+      expect(retrievedCheckpoint?.channel_values.version).toBe(2);
     });
   });
 
