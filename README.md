@@ -2,8 +2,14 @@
 
 > A LangGraph checkpoint saver implementation using Bun's native SQLite
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue.svg)](https://www.typescriptlang.org/)
 [![Bun](https://img.shields.io/badge/Bun-1.0+-black.svg)](https://bun.sh/)
+
+## ⚠️ Important: Bun Only
+
+**This package requires [Bun](https://bun.sh/) runtime and will NOT work with Node.js, Deno, or other JavaScript runtimes.**
+
+It uses Bun's native `bun:sqlite` module which is not available in other runtimes. If you need SQLite checkpoint storage for Node.js, please use [@langchain/langgraph-checkpoint-sqlite](https://www.npmjs.com/package/@langchain/langgraph-checkpoint-sqlite) instead.
 
 ## Overview
 
@@ -17,11 +23,13 @@
 
 ## Installation
 
+**Prerequisites:** You must have [Bun](https://bun.sh/) installed. This package does not work with Node.js.
+
 ```bash
 bun add langgraph-checkpoint-bunsqlite @langchain/langgraph-checkpoint
 ```
 
-> **Note:** This package requires Bun runtime. It will not work with Node.js or other JavaScript runtimes.
+> **⚠️ Runtime Requirement:** This package ONLY works with Bun runtime. It uses `bun:sqlite` which is not available in Node.js, Deno, or other JavaScript runtimes. Attempting to use it with other runtimes will result in module resolution errors.
 
 ## Quick Start
 
@@ -227,13 +235,13 @@ Save pending writes for a checkpoint.
 await saver.putWrites(config, writes, "task-1");
 ```
 
-##### `deleteThread(threadId: string): number`
+##### `deleteThread(threadId: string): Promise<void>`
 
-Delete all checkpoints and writes for a thread. Returns the number of checkpoints deleted.
+Delete all checkpoints and writes for a thread.
 
 ```typescript
-const deleted = saver.deleteThread("thread-1");
-console.log(`Deleted ${deleted} checkpoints`);
+await saver.deleteThread("thread-1");
+console.log("Thread deleted");
 ```
 
 ##### `deleteCheckpoint(threadId: string, checkpointId: string, checkpointNs?: string): boolean`
@@ -363,7 +371,7 @@ const config = { configurable: { thread_id: threadId } };
 // Clean up old threads periodically
 const oldThreads = await findOldThreads();
 for (const threadId of oldThreads) {
-  saver.deleteThread(threadId);
+  await saver.deleteThread(threadId);
 }
 ```
 

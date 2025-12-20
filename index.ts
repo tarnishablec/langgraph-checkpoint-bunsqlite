@@ -3,7 +3,18 @@
  * 
  * This module provides a checkpoint saver implementation for LangGraph that uses
  * Bun's native SQLite database for persistent storage.
+ * 
+ * @warning This package ONLY works with Bun runtime. It will not work with Node.js or other runtimes.
  */
+
+// Runtime check - ensure we're running on Bun
+if (typeof Bun === "undefined") {
+  throw new Error(
+    "langgraph-checkpoint-bunsqlite requires Bun runtime. " +
+    "This package uses bun:sqlite which is not available in Node.js or other runtimes. " +
+    "Please use Bun to run this code, or use @langchain/langgraph-checkpoint-sqlite for Node.js."
+  );
+}
 
 import { Database } from "bun:sqlite";
 import type { RunnableConfig } from "@langchain/core/runnables";
@@ -255,15 +266,15 @@ export class BunSqliteSaver extends BaseCheckpointSaver {
     }
 
     // Deserialize checkpoint and metadata
-    const checkpoint = this.serde.loadsTyped(
+    const checkpoint = (await this.serde.loadsTyped(
       row.type ?? "json",
       row.checkpoint
-    ) as Checkpoint;
+    )) as Checkpoint;
     
-    const metadata = this.serde.loadsTyped(
+    const metadata = (await this.serde.loadsTyped(
       "json",
       row.metadata
-    ) as CheckpointMetadata;
+    )) as CheckpointMetadata;
 
     // Get pending writes for this checkpoint
     const writesStmt = this.db.query<CheckpointWriteRow, [string, string, string]>(`
@@ -275,13 +286,14 @@ export class BunSqliteSaver extends BaseCheckpointSaver {
     
     const writeRows = writesStmt.all(row.thread_id, row.checkpoint_ns, row.checkpoint_id);
     
-    const pendingWrites: CheckpointPendingWrite[] = writeRows.map((writeRow) => {
-      const value = this.serde.loadsTyped(
+    const pendingWrites: CheckpointPendingWrite[] = [];
+    for (const writeRow of writeRows) {
+      const value = await this.serde.loadsTyped(
         writeRow.type ?? "json",
         writeRow.value
       );
-      return [writeRow.task_id, writeRow.channel, value];
-    });
+      pendingWrites.push([writeRow.task_id, writeRow.channel, value]);
+    }
 
     // Build config for this checkpoint
     const checkpointConfig: RunnableConfig = {
@@ -359,15 +371,15 @@ export class BunSqliteSaver extends BaseCheckpointSaver {
 
     for (const row of rows) {
       // Deserialize checkpoint and metadata
-      const checkpoint = this.serde.loadsTyped(
+      const checkpoint = (await this.serde.loadsTyped(
         row.type ?? "json",
         row.checkpoint
-      ) as Checkpoint;
+      )) as Checkpoint;
       
-      const metadata = this.serde.loadsTyped(
+      const metadata = (await this.serde.loadsTyped(
         "json",
         row.metadata
-      ) as CheckpointMetadata;
+      )) as CheckpointMetadata;
 
       // Check filter if specified
       if (options?.filter !== undefined) {
@@ -390,13 +402,14 @@ export class BunSqliteSaver extends BaseCheckpointSaver {
       
       const writeRows = writesStmt.all(row.thread_id, row.checkpoint_ns, row.checkpoint_id);
       
-      const pendingWrites: CheckpointPendingWrite[] = writeRows.map((writeRow) => {
-        const value = this.serde.loadsTyped(
+      const pendingWrites: CheckpointPendingWrite[] = [];
+      for (const writeRow of writeRows) {
+        const value = await this.serde.loadsTyped(
           writeRow.type ?? "json",
           writeRow.value
         );
-        return [writeRow.task_id, writeRow.channel, value];
-      });
+        pendingWrites.push([writeRow.task_id, writeRow.channel, value]);
+      }
 
       // Build config for this checkpoint
       const checkpointConfig: RunnableConfig = {
@@ -451,8 +464,8 @@ export class BunSqliteSaver extends BaseCheckpointSaver {
     }
 
     // Serialize checkpoint and metadata
-    const [checkpointType, checkpointData] = this.serde.dumpsTyped(checkpoint);
-    const [, metadataData] = this.serde.dumpsTyped(metadata);
+    const [checkpointType, checkpointData] = await this.serde.dumpsTyped(checkpoint);
+    const [, metadataData] = await this.serde.dumpsTyped(metadata);
 
     // Use checkpoint's ID
     const checkpointId = checkpoint.id;
@@ -515,7 +528,7 @@ export class BunSqliteSaver extends BaseCheckpointSaver {
 
     for (let idx = 0; idx < writes.length; idx++) {
       const [channel, value] = writes[idx];
-      const [type, serializedValue] = this.serde.dumpsTyped(value);
+      const [type, serializedValue] = await this.serde.dumpsTyped(value);
 
       stmt.run(
         threadId,
@@ -534,9 +547,8 @@ export class BunSqliteSaver extends BaseCheckpointSaver {
    * Delete all checkpoints and writes for a specific thread
    * 
    * @param threadId - ID of the thread to delete
-   * @returns Number of checkpoints deleted
    */
-  deleteThread(threadId: string): number {
+  async deleteThread(threadId: string): Promise<void> {
     // Delete writes first
     const deleteWritesStmt = this.db.prepare(`
       DELETE FROM checkpoint_writes WHERE thread_id = ?
@@ -547,9 +559,7 @@ export class BunSqliteSaver extends BaseCheckpointSaver {
     const deleteCheckpointsStmt = this.db.prepare(`
       DELETE FROM checkpoints WHERE thread_id = ?
     `);
-    const result = deleteCheckpointsStmt.run(threadId);
-
-    return result.changes;
+    deleteCheckpointsStmt.run(threadId);
   }
 
   /**
