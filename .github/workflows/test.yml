@@ -23,12 +23,49 @@ jobs:
         run: bun install
 
       - name: Run tests with coverage
-        run: bun test --coverage
+        run: bun test --coverage --coverage-reporter=lcov --coverage-dir=./coverage
 
       - name: Generate coverage badge
-        uses: tj-actions/coverage-badge-js@v1
-        with:
-          output: .github/coverage.svg
+        run: |
+          # Extract coverage percentage from lcov.info
+          if [ -f "./coverage/lcov.info" ]; then
+            # Calculate coverage from lcov.info
+            COVERAGE=$(awk '
+              /^DA:/ { total++; if ($2 > 0) covered++ }
+              END { 
+                if (total > 0) {
+                  pct = (covered / total) * 100
+                  printf "%.1f", pct
+                } else {
+                  print "0.0"
+                }
+              }
+            ' FS=',' ./coverage/lcov.info)
+            
+            echo "Coverage: ${COVERAGE}%"
+            
+            # Determine badge color based on coverage (using integer comparison)
+            COVERAGE_INT=$(echo "$COVERAGE" | cut -d. -f1)
+            if [ "$COVERAGE_INT" -ge 80 ]; then
+              COLOR="brightgreen"
+            elif [ "$COVERAGE_INT" -ge 60 ]; then
+              COLOR="green"
+            elif [ "$COVERAGE_INT" -ge 40 ]; then
+              COLOR="yellow"
+            elif [ "$COVERAGE_INT" -ge 20 ]; then
+              COLOR="orange"
+            else
+              COLOR="red"
+            fi
+            
+            # Generate badge using shields.io
+            curl -s "https://img.shields.io/badge/coverage-${COVERAGE}%25-${COLOR}.svg" -o .github/coverage.svg
+            
+            echo "Badge generated successfully"
+          else
+            echo "Error: lcov.info not found"
+            exit 1
+          fi
 
       - name: Commit coverage badge
         run: |
