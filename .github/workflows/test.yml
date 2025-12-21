@@ -31,6 +31,8 @@ jobs:
           if [ -f "./coverage/lcov.info" ]; then
             # Calculate coverage from lcov.info
             # LCOV DA records format: DA:<line number>,<execution count>
+            # Each DA record represents one line of code
+            # We count total lines and lines with execution_count > 0 (covered lines)
             COVERAGE=$(awk '
               /^DA:/ { 
                 split($0, parts, ":")
@@ -56,10 +58,12 @@ jobs:
               exit 1
             fi
             
-            # Determine badge color based on coverage (using parameter expansion for robustness)
+            # Determine badge color based on coverage (using parameter expansion)
             COVERAGE_INT=${COVERAGE%.*}
-            # Handle case where COVERAGE has no decimal point
-            [ -z "$COVERAGE_INT" ] && COVERAGE_INT="$COVERAGE"
+            # If COVERAGE has no decimal point, COVERAGE_INT will be empty, so use COVERAGE itself
+            if [ -z "$COVERAGE_INT" ]; then
+              COVERAGE_INT="$COVERAGE"
+            fi
             
             if [ "$COVERAGE_INT" -ge 80 ]; then
               COLOR="brightgreen"
@@ -72,6 +76,17 @@ jobs:
             else
               COLOR="red"
             fi
+            
+            # Validate color is one of expected values (prevent potential manipulation)
+            case "$COLOR" in
+              brightgreen|green|yellow|orange|red)
+                # Valid color
+                ;;
+              *)
+                echo "Error: Invalid color value: $COLOR"
+                exit 1
+                ;;
+            esac
             
             # Generate badge using shields.io
             HTTP_CODE=$(curl -s -w "%{http_code}" -o .github/coverage.svg "https://img.shields.io/badge/coverage-${COVERAGE}%25-${COLOR}.svg")
