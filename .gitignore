@@ -22,6 +22,9 @@ lib-cov
 coverage
 *.lcov
 
+# Exception: keep coverage badge
+!.github/coverage.svg
+
 # nyc test coverage
 .nyc_output
 
