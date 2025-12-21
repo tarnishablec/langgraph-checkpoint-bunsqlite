@@ -59,11 +59,8 @@ jobs:
             fi
             
             # Determine badge color based on coverage (using parameter expansion)
+            # Extract integer part - works for both "85.5" and "85" formats
             COVERAGE_INT=${COVERAGE%.*}
-            # If COVERAGE has no decimal point, COVERAGE_INT will be empty, so use COVERAGE itself
-            if [ -z "$COVERAGE_INT" ]; then
-              COVERAGE_INT="$COVERAGE"
-            fi
             
             if [ "$COVERAGE_INT" -ge 80 ]; then
               COLOR="brightgreen"
