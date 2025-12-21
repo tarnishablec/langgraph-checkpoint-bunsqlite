@@ -23,7 +23,8 @@
     "bun",
     "persistence"
   ],
-  "author": "",
+  "author": "tarnishablec@outlook.com",
+  "repository": "https://github.com/tarnishablec/langgraph-checkpoint-bunsqlite",
   "license": "MPL-2.0",
   "engines": {
     "bun": ">=1.0.0"

@@ -9,6 +9,7 @@
     "types": [
       "bun"
     ],
+    "baseUrl": ".",
     "strict": true,
     "alwaysStrict": true,
     "noImplicitAny": true,
@@ -29,7 +30,8 @@
     "forceConsistentCasingInFileNames": true
   },
   "include": [
-    "index.ts"
+    "index.ts",
+    "index.test.ts"
   ],
   "exclude": [
     "node_modules",
