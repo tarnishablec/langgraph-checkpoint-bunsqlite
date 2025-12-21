@@ -3,12 +3,12 @@ name: Test
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
@@ -25,8 +25,15 @@ jobs:
       - name: Run tests with coverage
         run: bun test --coverage
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+      - name: Generate coverage badge
+        uses: tj-actions/coverage-badge-js@v1
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false
+          output: .github/coverage.svg
+
+      - name: Commit coverage badge
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add .github/coverage.svg
+          git diff --staged --quiet || git commit -m "Update coverage badge"
+          git push

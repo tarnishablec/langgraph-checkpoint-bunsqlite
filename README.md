@@ -4,7 +4,7 @@
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-blue.svg)](https://www.typescriptlang.org/)
 [![Bun](https://img.shields.io/badge/Bun-1.35-black.svg)](https://bun.sh/)
-[![codecov](https://codecov.io/gh/tarnishablec/langgraph-checkpoint-bunsqlite/branch/main/graph/badge.svg)](https://codecov.io/gh/tarnishablec/langgraph-checkpoint-bunsqlite)
+![Coverage](.github/coverage.svg)
 
 ## ⚠️ Important: Bun Only
 
