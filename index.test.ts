@@ -160,7 +160,7 @@ describe("BunSqliteSaver", () => {
             const metadata = createMetadata();
             const config = {configurable: {}};
 
-            expect(saver.put(config as any, checkpoint, metadata)).rejects.toThrow(
+            expect(saver.put(config, checkpoint, metadata)).rejects.toThrow(
                 "thread_id is required"
             );
         });
@@ -200,7 +200,7 @@ describe("BunSqliteSaver", () => {
         });
 
         test("should return undefined when thread_id is missing", async () => {
-            const checkpoint = await saver.get({configurable: {}} as any);
+            const checkpoint = await saver.get({configurable: {}});
             expect(checkpoint).toBeUndefined();
         });
 
@@ -262,7 +262,7 @@ describe("BunSqliteSaver", () => {
         });
 
         test("should return undefined when thread_id is missing", async () => {
-            const tuple = await saver.getTuple({configurable: {}} as any);
+            const tuple = await saver.getTuple({configurable: {}});
             expect(tuple).toBeUndefined();
         });
 
@@ -304,7 +304,7 @@ describe("BunSqliteSaver", () => {
         test("should throw error if thread_id is missing", async () => {
             const writes: PendingWrite[] = [["channel1", {data: "value1"}]];
             expect(
-                saver.putWrites({configurable: {}} as any, writes, "task-1")
+                saver.putWrites({configurable: {}}, writes, "task-1")
             ).rejects.toThrow("thread_id is required");
         });
 
@@ -312,7 +312,7 @@ describe("BunSqliteSaver", () => {
             const writes: PendingWrite[] = [["channel1", {data: "value1"}]];
             expect(
                 saver.putWrites(
-                    createConfig("thread-1") as any,
+                    createConfig("thread-1"),
                     writes,
                     "task-1"
                 )
@@ -335,9 +335,9 @@ describe("BunSqliteSaver", () => {
             await saver.putWrites(savedConfig, writes, "task-1");
 
             const tuple = await saver.getTuple(savedConfig);
-            expect(tuple?.pendingWrites?.[0][1]).toBe("channel1");
-            expect(tuple?.pendingWrites?.[1][1]).toBe("channel2");
-            expect(tuple?.pendingWrites?.[2][1]).toBe("channel3");
+            expect(tuple?.pendingWrites?.[0]?.[1]).toBe("channel1");
+            expect(tuple?.pendingWrites?.[1]?.[1]).toBe("channel2");
+            expect(tuple?.pendingWrites?.[2]?.[1]).toBe("channel3");
         });
     });
 
@@ -373,9 +373,9 @@ describe("BunSqliteSaver", () => {
                 checkpoints.push(tuple);
             }
 
-            expect(checkpoints[0].checkpoint.id).toBe("checkpoint-3");
-            expect(checkpoints[1].checkpoint.id).toBe("checkpoint-2");
-            expect(checkpoints[2].checkpoint.id).toBe("checkpoint-1");
+            expect(checkpoints[0]?.checkpoint.id).toBe("checkpoint-3");
+            expect(checkpoints[1]?.checkpoint.id).toBe("checkpoint-2");
+            expect(checkpoints[2]?.checkpoint.id).toBe("checkpoint-1");
         });
 
         test("should respect limit option", async () => {
@@ -427,7 +427,7 @@ describe("BunSqliteSaver", () => {
             }
 
             expect(checkpoints.length).toBe(1);
-            expect(checkpoints[0].checkpoint.id).toBe("checkpoint-2");
+            expect(checkpoints[0]?.checkpoint.id).toBe("checkpoint-2");
         });
 
         test("should return empty for non-existent thread", async () => {
@@ -441,7 +441,7 @@ describe("BunSqliteSaver", () => {
 
         test("should return empty when thread_id is missing", async () => {
             const checkpoints = [];
-            for await (const tuple of saver.list({configurable: {}} as any)) {
+            for await (const tuple of saver.list({configurable: {}})) {
                 checkpoints.push(tuple);
             }
 
