@@ -3,16 +3,16 @@ name: Test
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -25,84 +25,9 @@ jobs:
       - name: Run tests with coverage
         run: bun test --coverage --coverage-reporter=lcov --coverage-dir=./coverage
 
-      - name: Generate coverage badge
-        run: |
-          # Extract coverage percentage from lcov.info
-          if [ -f "./coverage/lcov.info" ]; then
-            # Calculate coverage from lcov.info
-            # LCOV DA records format: DA:<line number>,<execution count>
-            # Each DA record represents one line of code
-            # We count total lines and lines with execution_count > 0 (covered lines)
-            COVERAGE=$(awk '
-              /^DA:/ { 
-                split($0, parts, ":")
-                split(parts[2], counts, ",")
-                total++
-                if (counts[2] > 0) covered++
-              }
-              END { 
-                if (total > 0) {
-                  pct = (covered * 100.0) / total
-                  printf "%.1f", pct
-                } else {
-                  print "0.0"
-                }
-              }
-            ' ./coverage/lcov.info)
-            
-            echo "Coverage: ${COVERAGE}%"
-            
-            # Validate coverage is a number
-            if ! echo "$COVERAGE" | grep -qE '^[0-9]+\.?[0-9]*$'; then
-              echo "Error: Invalid coverage value: $COVERAGE"
-              exit 1
-            fi
-            
-            # Determine badge color based on coverage (using parameter expansion)
-            # Extract integer part - works for both "85.5" and "85" formats
-            COVERAGE_INT=${COVERAGE%.*}
-            
-            if [ "$COVERAGE_INT" -ge 80 ]; then
-              COLOR="brightgreen"
-            elif [ "$COVERAGE_INT" -ge 60 ]; then
-              COLOR="green"
-            elif [ "$COVERAGE_INT" -ge 40 ]; then
-              COLOR="yellow"
-            elif [ "$COVERAGE_INT" -ge 20 ]; then
-              COLOR="orange"
-            else
-              COLOR="red"
-            fi
-            
-            # Validate color is one of expected values (prevent potential manipulation)
-            case "$COLOR" in
-              brightgreen|green|yellow|orange|red)
-                # Valid color
-                ;;
-              *)
-                echo "Error: Invalid color value: $COLOR"
-                exit 1
-                ;;
-            esac
-            
-            # Generate badge using shields.io
-            HTTP_CODE=$(curl -s -w "%{http_code}" -o .github/coverage.svg "https://img.shields.io/badge/coverage-${COVERAGE}%25-${COLOR}.svg")
-            
-            if [ "$HTTP_CODE" -eq 200 ]; then
-              echo "Badge generated successfully"
-            else
-              echo "Error: Failed to generate badge (HTTP $HTTP_CODE)"
-              exit 1
-            fi
-          else
-            echo "Error: lcov.info not found"
-            exit 1
-          fi
-
-      - name: Commit coverage badge
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add .github/coverage.svg
-          git diff --staged --quiet || git commit -m "Update coverage badge"
-          git push
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage/lcov.info
+          fail_ci_if_error: true
+          verbose: true
