@@ -320,7 +320,7 @@ export class BunSqliteSaver extends BaseCheckpointSaver {
      * });
      * ```
      */
-    async get(config: RunnableConfig): Promise<Checkpoint | undefined> {
+    override async get(config: RunnableConfig): Promise<Checkpoint | undefined> {
         const tuple = await this.getTuple(config);
         return tuple?.checkpoint;
     }
@@ -613,8 +613,7 @@ export class BunSqliteSaver extends BaseCheckpointSaver {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
-        for (let idx = 0; idx < writes.length; idx++) {
-            const [channel, value] = writes[idx];
+        for (const [idx, [channel, value]] of writes.entries()) {
             const [type, serializedValue] = await this.serde.dumpsTyped(value);
 
             stmt.run(
