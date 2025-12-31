@@ -3,7 +3,7 @@
 > A LangGraph checkpoint saver implementation using Bun's native SQLite
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-blue.svg)](https://www.typescriptlang.org/)
-[![Bun](https://img.shields.io/badge/Bun-1.35-black.svg)](https://bun.sh/)
+[![Bun Checked](https://img.shields.io/badge/Bun-checked-blue?logo=bun&logoColor=white)](https://bun.sh)
 [![LangGraph](https://img.shields.io/badge/LangGraph-latest-green.svg)](https://github.com/langchain-ai/langgraphjs)
 [![codecov](https://codecov.io/gh/tarnishablec/langgraph-checkpoint-bunsqlite/graph/badge.svg)](https://codecov.io/gh/tarnishablec/langgraph-checkpoint-bunsqlite)
 
@@ -162,9 +162,9 @@ const customSaver = BunSqliteSaver.fromConnString(
 #### In-Memory Database (Default)
 
 ```typescript
-const saver = new BunSqliteSaver();
+const saver1 = new BunSqliteSaver();
 // or explicitly
-const saver = new BunSqliteSaver({ dbPath: ":memory:" });
+const saver2 = new BunSqliteSaver({ dbPath: ":memory:" });
 ```
 
 #### File-Based Database
@@ -209,7 +209,7 @@ The main class implementing checkpoint persistence.
 
 #### Constructor
 
-```typescript
+```
 new BunSqliteSaver(config?: BunSqliteSaverConfig)
 ```
 
@@ -414,11 +414,11 @@ This package provides multiple API patterns that are interchangeable:
 
 ```typescript
 // Pattern 1: Using fromConnString and get() (compatible with @langchain/langgraph-checkpoint-sqlite)
-const saver = BunSqliteSaver.fromConnString(":memory:");
+const saver1 = BunSqliteSaver.fromConnString(":memory:");
 const checkpoint = await saver.get(config);
 
 // Pattern 2: Using constructor and getTuple() (full tuple with metadata)
-const saver = new BunSqliteSaver({ dbPath: ":memory:" });
+const saver2 = new BunSqliteSaver({ dbPath: ":memory:" });
 const tuple = await saver.getTuple(config);
 
 // Both patterns are valid and can be used based on your preference
